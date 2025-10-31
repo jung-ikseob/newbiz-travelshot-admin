@@ -1,4 +1,7 @@
 @import "./_custom_preflight.css";
+@import "./_spinner.css";
+@import "./_custom_antd.css";
+@import "./_custom_quill.css";
 
 @tailwind base;
 @tailwind components;
@@ -56,7 +59,3 @@
     @apply whitespace-nowrap overflow-hidden overflow-ellipsis;
   }
 }
-
-@import "./_spinner.css";
-@import "./_custom_antd.css";
-@import "./_custom_quill.css";
