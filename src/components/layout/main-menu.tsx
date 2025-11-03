@@ -42,10 +42,10 @@ const mainMenuData: IMenu[] = [
     icon: <Building2 className="w-5 h-5" />,
     submenu: [
       {
-        id: "productList",
+        id: "cardStats",
         name: "신한 데이터 관리",
         link: {
-          path: "/sample/product/list",
+          path: "/shinhan/card-stats",
         },
       },
     ],
