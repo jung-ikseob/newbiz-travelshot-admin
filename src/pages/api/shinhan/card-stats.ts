@@ -7,10 +7,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const limit = 20;
     const offset = (page - 1) * limit;
 
-    // SHCARD_STATS 테이블에서 데이터 조회
+    // SHCARD_STATS 테이블에서 데이터 조회 (조인 키 포함)
     const { data: statsData, error: statsError } = await supabase
       .from('SHCARD_STATS')
-      .select('card_use_ymd, card_use_sum_amt, card_use_sum_cnt, stml_type, id')
+      .select('card_use_ymd, card_use_sum_amt, card_use_sum_cnt, stml_type, frcs_addr_cd, frcs_tpbiz_cd, id')
       .range(offset, offset + limit - 1)
       .order('card_use_ymd', { ascending: false });
 
@@ -35,42 +35,73 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const totalCount = count || 0;
     const totalPage = Math.ceil(totalCount / limit);
 
-    // ADDR_INFO 테이블에서 모든 데이터 조회 (조인 키가 없으므로 별도 조회)
-    const { data: addrData, error: addrError } = await supabase
-      .from('ADDR_INFO')
-      .select('gsd_nm, sgg_nm')
-      .limit(1);
+    // statsData에서 고유한 addr_cd와 tpbiz_cd 추출
+    const addrCodesSet = new Set(statsData?.map(item => item.frcs_addr_cd).filter(Boolean));
+    const tpbizCodesSet = new Set(statsData?.map(item => item.frcs_tpbiz_cd).filter(Boolean));
+    const addrCodes = Array.from(addrCodesSet);
+    const tpbizCodes = Array.from(tpbizCodesSet);
 
-    if (addrError) {
-      console.error('ADDR_INFO query error:', addrError);
+    // ADDR_INFO 테이블에서 필요한 데이터만 조회 (빈 배열 체크)
+    let addrData = null;
+    if (addrCodes.length > 0) {
+      const { data, error: addrError } = await supabase
+        .from('ADDR_INFO')
+        .select('frcs_addr_cd, gsd_nm, sgg_nm')
+        .in('frcs_addr_cd', addrCodes);
+
+      if (addrError) {
+        console.error('ADDR_INFO query error:', addrError);
+      } else {
+        addrData = data;
+      }
     }
 
-    // TPBIZ_INFO 테이블에서 모든 데이터 조회
-    const { data: tpbizData, error: tpbizError } = await supabase
-      .from('TPBIZ_INFO')
-      .select('tpbiz_large_nm, tpbiz_mediaum_nm, tpbiz_small_nm')
-      .limit(1);
+    // TPBIZ_INFO 테이블에서 필요한 데이터만 조회 (빈 배열 체크)
+    let tpbizData = null;
+    if (tpbizCodes.length > 0) {
+      const { data, error: tpbizError } = await supabase
+        .from('TPBIZ_INFO')
+        .select('frcs_tpbiz_cd, tpbiz_large_nm, tpbiz_mediaum_nm, tpbiz_small_nm')
+        .in('frcs_tpbiz_cd', tpbizCodes);
 
-    if (tpbizError) {
-      console.error('TPBIZ_INFO query error:', tpbizError);
+      if (tpbizError) {
+        console.error('TPBIZ_INFO query error:', tpbizError);
+      } else {
+        tpbizData = data;
+      }
     }
 
-    // 데이터 조합 (FK 관계가 없으므로 임시로 첫 번째 항목 사용)
-    // 실제 운영 환경에서는 조인 키를 통해 매칭해야 합니다
-    const defaultAddr = addrData?.[0] || { gsd_nm: '', sgg_nm: '' };
-    const defaultTpbiz = tpbizData?.[0] || { tpbiz_large_nm: '', tpbiz_mediaum_nm: '', tpbiz_small_nm: '' };
+    // 조회한 데이터를 Map으로 변환하여 빠른 조회
+    const addrMap = new Map(addrData?.map(item => [item.frcs_addr_cd, item]) || []);
+    const tpbizMap = new Map(tpbizData?.map(item => [item.frcs_tpbiz_cd, item]) || []);
 
-    const items = statsData?.map((item: any) => ({
-      card_use_ymd: item.card_use_ymd,
-      gsd_nm: defaultAddr.gsd_nm,
-      sgg_nm: defaultAddr.sgg_nm,
-      tpbiz_large_nm: defaultTpbiz.tpbiz_large_nm,
-      tpbiz_mediaum_nm: defaultTpbiz.tpbiz_mediaum_nm,
-      tpbiz_small_nm: defaultTpbiz.tpbiz_small_nm,
-      stml_type: item.stml_type,
-      card_use_sum_amt: item.card_use_sum_amt,
-      card_use_sum_cnt: item.card_use_sum_cnt,
-    })) || [];
+    // 데이터 조합 (실제 조인 키를 통해 매칭)
+    const items = (statsData || []).map((item: any) => {
+      // 주소 정보 조회 (없으면 기본값)
+      const addr = addrMap.get(item.frcs_addr_cd) || {
+        gsd_nm: item.frcs_addr_cd || '',
+        sgg_nm: ''
+      };
+
+      // 업종 정보 조회 (없으면 기본값)
+      const tpbiz = tpbizMap.get(item.frcs_tpbiz_cd) || {
+        tpbiz_large_nm: item.frcs_tpbiz_cd || '',
+        tpbiz_mediaum_nm: '',
+        tpbiz_small_nm: ''
+      };
+
+      return {
+        card_use_ymd: item.card_use_ymd || '',
+        gsd_nm: addr.gsd_nm || '',
+        sgg_nm: addr.sgg_nm || '',
+        tpbiz_large_nm: tpbiz.tpbiz_large_nm || '',
+        tpbiz_mediaum_nm: tpbiz.tpbiz_mediaum_nm || '',
+        tpbiz_small_nm: tpbiz.tpbiz_small_nm || '',
+        stml_type: parseInt(item.stml_type) || 0,
+        card_use_sum_amt: item.card_use_sum_amt || 0,
+        card_use_sum_cnt: item.card_use_sum_cnt || 0,
+      };
+    });
 
     res.status(200).json({
       code: 0,
