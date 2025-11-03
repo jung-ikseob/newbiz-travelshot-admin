@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { message } from "antd";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { IMenu, isEqualPath } from ".";
 import NavItem from "./nav-item";
 
@@ -16,10 +17,22 @@ const NavMenu = ({ menu }: INavMenuProps) => {
       : false
   );
 
+  const handleParentClick = useCallback(() => {
+    // submenu가 있으면 토글
+    if (menu.submenu && menu.submenu.length > 0) {
+      setIsShowSubMenu(!isShowSubMenu);
+    } else {
+      // submenu가 없고 link도 없으면 '준비 중입니다'
+      if (!menu.link || !menu.link.path || menu.link.path === "/") {
+        message.info("준비 중입니다");
+      }
+    }
+  }, [menu, isShowSubMenu]);
+
   if (menu.submenu) {
     return (
       <li>
-        <a onClick={() => setIsShowSubMenu(!isShowSubMenu)}>
+        <a onClick={handleParentClick}>
           {menu.icon}
           <span className="cursor-pointer grow">{menu.name}</span>
           {menu.submenu && menu.submenu.length > 0 ? (
