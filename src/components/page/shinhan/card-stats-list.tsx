@@ -5,17 +5,29 @@ import { Alert } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/router";
 import numeral from "numeral";
-import React, { useCallback } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 
 const CardStatsList = () => {
   const router = useRouter();
-  const { data, error, isLoading } = useCardStats({ page: router.query.page ? Number(router.query.page) : 1 });
+  const currentPage = router.query.page ? Number(router.query.page) : 1;
+  const { data, error, isLoading, mutate } = useCardStats({ page: currentPage });
+
+  // 페이지 변경 시 강제로 데이터 리페치
+  useEffect(() => {
+    mutate();
+  }, [currentPage, mutate]);
+
+  // 데이터가 변경될 때마다 새로운 배열 참조 생성
+  const tableData = useMemo(() => {
+    console.log('Page:', currentPage, 'Items count:', data?.data.items?.length);
+    return data?.data.items || [];
+  }, [data, currentPage]);
 
   const handleChangePage = useCallback(
     (pageNumber: number) => {
       router.push({
         pathname: router.pathname,
-        query: { ...router.query, page: pageNumber },
+        query: { page: pageNumber },
       });
     },
     [router]
@@ -95,6 +107,7 @@ const CardStatsList = () => {
   ];
 
   if (error) {
+    console.error('Card stats error:', error);
     return <Alert message="데이터 로딩 중 오류가 발생했습니다." type="warning" />;
   }
 
@@ -102,23 +115,24 @@ const CardStatsList = () => {
     <>
       <DefaultTable<ICardStats>
         columns={columns}
-        dataSource={data?.data.items || []}
+        dataSource={tableData}
         loading={isLoading}
         pagination={{
-          current: Number(router.query.page || 1),
+          current: currentPage,
           defaultPageSize: 20,
+          pageSize: 20,
           total: data?.data.page.totalCount || 0,
           showSizeChanger: false,
           onChange: handleChangePage,
         }}
         className="mt-3"
         countLabel={data?.data.page.totalCount}
-        rowKey={(record) =>
-          `${record.card_use_ymd}-${record.gsd_nm}-${record.sgg_nm}-${record.tpbiz_large_nm}`
+        rowKey={(record, index) =>
+          `${currentPage}-${index}-${record.card_use_ymd}-${record.card_use_sum_amt}`
         }
       />
     </>
   );
 };
 
-export default React.memo(CardStatsList);
+export default CardStatsList;

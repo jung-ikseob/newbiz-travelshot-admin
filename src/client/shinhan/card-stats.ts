@@ -3,5 +3,10 @@ import qs from "qs";
 import useSWR from "swr";
 
 export const useCardStats = (params: ICardStatsParams = {}) => {
-  return useSWR<ICardStatsResponse>(`api/shinhan/card-stats?${qs.stringify(params)}`);
+  const queryString = qs.stringify(params);
+  const key = queryString ? `/api/shinhan/card-stats?${queryString}` : '/api/shinhan/card-stats';
+  return useSWR<ICardStatsResponse>(key, {
+    keepPreviousData: false,
+    revalidateOnFocus: false,
+  });
 };
