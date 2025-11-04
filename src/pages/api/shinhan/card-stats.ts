@@ -12,7 +12,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from('SHCARD_STATS')
       .select('card_use_ymd, card_use_sum_amt, card_use_sum_cnt, stml_type, frcs_addr_cd, frcs_tpbiz_cd, id')
       .range(offset, offset + limit - 1)
-      .order('card_use_ymd', { ascending: false });
+      .order('card_use_ymd', { ascending: false })
+      .order('id', { ascending: false });
 
     if (statsError) {
       console.error('SHCARD_STATS query error:', statsError);
