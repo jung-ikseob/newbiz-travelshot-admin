@@ -5,7 +5,7 @@ import { Alert } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/router";
 import numeral from "numeral";
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 const CardStatsList = () => {
   const router = useRouter();
@@ -68,13 +68,13 @@ const CardStatsList = () => {
     {
       title: "업종(중)",
       dataIndex: "tpbiz_mediaum_nm",
-      width: 120,
+      width: 150,
       align: "center",
     },
     {
       title: "업종(소)",
       dataIndex: "tpbiz_small_nm",
-      width: 120,
+      width: 150,
       align: "center",
     },
     {
