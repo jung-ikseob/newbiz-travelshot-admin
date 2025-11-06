@@ -13,7 +13,7 @@ const credentialsProviderOption: CredentialsConfig<{}> = {
     password: { label: "Password", type: "password" },
   },
   async authorize(credentials: Record<string, unknown> | undefined) {
-    if (credentials && credentials.username === "admin" && credentials.password === "admin") {
+    if (credentials && credentials.username === "admin" && credentials.password === "xmfoqmftit") {
       return {
         id: "1",
         login: "admin",
