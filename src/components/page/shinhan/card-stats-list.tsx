@@ -1,11 +1,14 @@
 import { useCardStats } from "@/client/shinhan/card-stats";
 import DefaultTable from "@/components/shared/ui/default-table";
 import { ICardStats } from "@/types/shinhan-card";
-import { Alert } from "antd";
+import { Alert, Row, Col } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/router";
 import numeral from "numeral";
 import { useCallback, useEffect, useMemo } from "react";
+import OnlineOfflineChart from "./charts/online-offline-chart";
+import IndustryChart from "./charts/industry-chart";
+import RegionMapChart from "./charts/region-map-chart";
 
 const CardStatsList = () => {
   const router = useRouter();
@@ -113,6 +116,20 @@ const CardStatsList = () => {
 
   return (
     <>
+      {/* 통계 차트 섹션 */}
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} lg={8}>
+          <OnlineOfflineChart />
+        </Col>
+        <Col xs={24} lg={8}>
+          <IndustryChart />
+        </Col>
+        <Col xs={24} lg={8}>
+          <RegionMapChart />
+        </Col>
+      </Row>
+
+      {/* 데이터 테이블 */}
       <DefaultTable<ICardStats>
         columns={columns}
         dataSource={tableData}
