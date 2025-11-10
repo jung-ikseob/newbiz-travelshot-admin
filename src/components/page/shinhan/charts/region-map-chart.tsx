@@ -111,8 +111,8 @@ const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: Ma
     return "#FEE2E2";                     // 상위 17~: 낮음
   };
 
-  const width = isModal ? 600 : 320;
-  const height = isModal ? 600 : 280;
+  const width = isModal ? 800 : 320;
+  const height = isModal ? 800 : 280;
 
   if (loading) {
     return (
@@ -129,7 +129,7 @@ const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: Ma
         <div className="flex flex-col items-center justify-center flex-1">
           {/* 툴팁 */}
           {tooltipContent && (
-            <div className="absolute top-0 left-0 z-10 px-2 py-1 text-xs bg-white border rounded shadow-lg">
+            <div className="absolute top-0 left-0 z-10 px-3 py-2 text-2xl bg-white border rounded shadow-lg">
               {tooltipContent}
             </div>
           )}
@@ -138,7 +138,7 @@ const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: Ma
           <ComposableMap
             projection="geoMercator"
             projectionConfig={{
-              scale: isModal ? 55000 : 38000,
+              scale: isModal ? 70000 : 38000,
               center: [126.98, 37.56],
             }}
             width={width}
@@ -185,10 +185,10 @@ const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: Ma
         </div>
 
         {/* 우측: TOP 6 */}
-        <div className={`${isModal ? "w-48" : "w-40"} flex flex-col justify-center`}>
-          <div className={isModal ? "space-y-2" : "space-y-1"}>
+        <div className={`${isModal ? "w-80" : "w-40"} flex flex-col justify-center`}>
+          <div className={isModal ? "space-y-4" : "space-y-1"}>
             {topDistricts.map(([district, value], index) => (
-              <div key={district} className={`text-gray-600 ${isModal ? "text-xs" : "text-[10px]"}`}>
+              <div key={district} className={`text-gray-600 ${isModal ? "text-2xl" : "text-[10px]"}`}>
                 {index + 1}. {district}: {numeral(value).format("0,0")}원
               </div>
             ))}
@@ -197,18 +197,18 @@ const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: Ma
       </div>
 
       {/* 범례 - 하단 중앙 */}
-      <div className={`flex justify-center items-center gap-3 ${isModal ? "mt-4" : "mt-2"}`}>
-        <div className="flex items-center gap-1">
-          <div className={`${isModal ? "w-4 h-4" : "w-3 h-3"} bg-[#DC2626]`} />
-          <span className={isModal ? "text-xs" : "text-[10px]"}>높음</span>
+      <div className={`flex justify-center items-center gap-6 ${isModal ? "mt-8" : "mt-2"}`}>
+        <div className="flex items-center gap-3">
+          <div className={`${isModal ? "w-8 h-8" : "w-3 h-3"} bg-[#DC2626]`} />
+          <span className={isModal ? "text-xl" : "text-[10px]"}>높음</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className={`${isModal ? "w-4 h-4" : "w-3 h-3"} bg-[#F87171]`} />
-          <span className={isModal ? "text-xs" : "text-[10px]"}>중간</span>
+        <div className="flex items-center gap-3">
+          <div className={`${isModal ? "w-8 h-8" : "w-3 h-3"} bg-[#F87171]`} />
+          <span className={isModal ? "text-xl" : "text-[10px]"}>중간</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className={`${isModal ? "w-4 h-4" : "w-3 h-3"} bg-[#FEE2E2]`} />
-          <span className={isModal ? "text-xs" : "text-[10px]"}>낮음</span>
+        <div className="flex items-center gap-3">
+          <div className={`${isModal ? "w-8 h-8" : "w-3 h-3"} bg-[#FEE2E2]`} />
+          <span className={isModal ? "text-xl" : "text-[10px]"}>낮음</span>
         </div>
       </div>
     </div>
@@ -283,7 +283,7 @@ const RegionMapChart = () => {
                 size="small"
                 icon={<Maximize2 size={16} />}
                 onClick={() => setIsModalOpen(true)}
-                title="크게 보기"
+                title="크��� 보기"
               />
             </div>
           </div>
@@ -304,7 +304,7 @@ const RegionMapChart = () => {
         title={<span className="text-lg font-semibold">지역 별 오프라인 판매 금액</span>}
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
-        width={800}
+        width={1200}
         footer={null}
         centered
       >
