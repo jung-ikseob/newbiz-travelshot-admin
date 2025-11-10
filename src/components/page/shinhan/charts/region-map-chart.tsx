@@ -84,28 +84,31 @@ interface MapContentProps {
 const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: MapContentProps) => {
   const [tooltipContent, setTooltipContent] = useState("");
 
-  const { minValue, maxValue, topDistricts } = useMemo(() => {
-    const values = Object.values(currentData);
+  const { topDistricts, districtRanks } = useMemo(() => {
     const sorted = Object.entries(currentData)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 6);
+      .sort(([, a], [, b]) => b - a);
+
+    const top6 = sorted.slice(0, 6);
+
+    // 각 구의 순위를 매핑
+    const ranks: Record<string, number> = {};
+    sorted.forEach(([district], index) => {
+      ranks[district] = index + 1;
+    });
 
     return {
-      minValue: Math.min(...values),
-      maxValue: Math.max(...values),
-      topDistricts: sorted,
+      topDistricts: top6,
+      districtRanks: ranks,
     };
   }, [currentData]);
 
-  const getColor = (value: number) => {
-    if (!value) return "#FEE2E2";
-    const ratio = (value - minValue) / (maxValue - minValue);
+  const getColor = (districtName: string) => {
+    const rank = districtRanks[districtName];
+    if (!rank) return "#FEE2E2"; // 데이터 없음
 
-    if (ratio > 0.8) return "#DC2626";
-    if (ratio > 0.6) return "#EF4444";
-    if (ratio > 0.4) return "#F87171";
-    if (ratio > 0.2) return "#FCA5A5";
-    return "#FEE2E2";
+    if (rank <= 7) return "#DC2626";      // 상위 1~7: 높음
+    if (rank <= 16) return "#F87171";     // 상위 8~16: 중간
+    return "#FEE2E2";                     // 상위 17~: 낮음
   };
 
   const width = isModal ? 600 : 320;
@@ -147,7 +150,7 @@ const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: Ma
                 geographies.map((geo: any) => {
                   const districtName = geo.properties.name || geo.properties.SIG_KOR_NM;
                   const value = currentData[districtName] || 0;
-                  const color = getColor(value);
+                  const color = getColor(districtName);
 
                   return (
                     <Geography
