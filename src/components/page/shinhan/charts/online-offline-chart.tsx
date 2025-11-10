@@ -162,13 +162,13 @@ const OnlineOfflineChart = () => {
   console.log("Transformed data for chart:", data);
 
   // @ts-ignore - Recharts type compatibility issue with Next.js 16
-  const ChartContainer = ResponsiveContainer;
+  const ChartContainer: any = ResponsiveContainer;
   // @ts-ignore - Recharts type compatibility issue with Next.js 16
-  const Chart = PieChart;
+  const Chart: any = PieChart;
   // @ts-ignore - Recharts type compatibility issue with Next.js 16
-  const PieComponent = Pie;
+  const PieComponent: any = Pie;
   // @ts-ignore - Recharts type compatibility issue with Next.js 16
-  const LegendComponent = Legend;
+  const LegendComponent: any = Legend;
 
   return (
     <Card className="flex flex-col h-full shadow-sm">

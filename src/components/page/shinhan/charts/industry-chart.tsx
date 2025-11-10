@@ -146,7 +146,7 @@ const mockData: Record<string, Record<string, Array<{ name: string; count: numbe
     ],
     offline: [
       { name: "요식/유흥", count: 2100, color: "#7C3AED" },
-      { name: "의류/잡화", count: 1750, color: "#A78BFA" },
+      { name: "���류/잡화", count: 1750, color: "#A78BFA" },
       { name: "생활서비스", count: 1650, color: "#C4B5FD" },
       { name: "레저/여행", count: 1100, color: "#DDD6FE" },
       { name: "기타", count: 530, color: "#EDE9FE" },
@@ -172,7 +172,7 @@ const mockData: Record<string, Record<string, Array<{ name: string; count: numbe
     online: [
       { name: "요식/유흥", count: 1080, color: "#7C3AED" },
       { name: "의류/잡화", count: 800, color: "#A78BFA" },
-      { name: "생활서비스", count: 800, color: "#C4B5FD" },
+      { name: "생��서비스", count: 800, color: "#C4B5FD" },
       { name: "레저/여행", count: 580, color: "#DDD6FE" },
       { name: "기타", count: 310, color: "#EDE9FE" },
     ],
@@ -290,7 +290,7 @@ const mockData: Record<string, Record<string, Array<{ name: string; count: numbe
     ],
     offline: [
       { name: "요식/유흥", count: 1650, color: "#7C3AED" },
-      { name: "의류/잡화", count: 1780, color: "#A78BFA" },
+      { name: "의���/잡화", count: 1780, color: "#A78BFA" },
       { name: "생활서비스", count: 1820, color: "#C4B5FD" },
       { name: "레저/여행", count: 1020, color: "#DDD6FE" },
       { name: "기타", count: 620, color: "#EDE9FE" },
@@ -412,15 +412,6 @@ const IndustryChart = () => {
     count: item.count, // 범례용 건수
   }));
 
-  // @ts-ignore - Recharts type compatibility issue with Next.js 16
-  const ChartContainer = ResponsiveContainer;
-  // @ts-ignore - Recharts type compatibility issue with Next.js 16
-  const Chart = PieChart;
-  // @ts-ignore - Recharts type compatibility issue with Next.js 16
-  const PieComponent = Pie;
-  // @ts-ignore - Recharts type compatibility issue with Next.js 16
-  const LegendComponent = Legend;
-
   return (
     <Card className="flex flex-col h-full shadow-sm">
       <div className="mb-4">
@@ -449,9 +440,9 @@ const IndustryChart = () => {
         {loading ? (
           <Spin size="large" />
         ) : (
-          <ChartContainer width="100%" height={280}>
-            <Chart>
-              <PieComponent
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
                 data={data}
                 cx="50%"
                 cy="50%"
@@ -470,8 +461,8 @@ const IndustryChart = () => {
                     opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
                   />
                 ))}
-              </PieComponent>
-              <LegendComponent
+              </Pie>
+              <Legend
                 verticalAlign="bottom"
                 height={36}
                 iconType="circle"
@@ -481,8 +472,8 @@ const IndustryChart = () => {
                   </span>
                 )}
               />
-            </Chart>
-          </ChartContainer>
+            </PieChart>
+          </ResponsiveContainer>
         )}
       </div>
     </Card>
