@@ -412,6 +412,15 @@ const IndustryChart = () => {
     count: item.count, // 범례용 건수
   }));
 
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const ChartContainer: any = ResponsiveContainer;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const Chart: any = PieChart;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const PieComponent: any = Pie;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const LegendComponent: any = Legend;
+
   return (
     <Card className="flex flex-col h-full shadow-sm">
       <div className="mb-4">
@@ -440,43 +449,40 @@ const IndustryChart = () => {
         {loading ? (
           <Spin size="large" />
         ) : (
-          <>
-            {/* @ts-expect-error - Recharts type compatibility issue with Next.js 16 */}
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  innerRadius={50}
-                  fill="#8884d8"
-                  dataKey="value"
-                  onMouseEnter={(_, index) => setActiveIndex(index)}
-                  onMouseLeave={() => setActiveIndex(null)}
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                      opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
-                    />
-                  ))}
-                </Pie>
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  formatter={(value, entry: any) => (
-                    <span className="text-sm text-gray-700">
-                      {value} ({numeral(entry.payload.count).format("0,0")}건)
-                    </span>
-                  )}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </>
+          <ChartContainer width="100%" height={280}>
+            <Chart>
+              <PieComponent
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={80}
+                innerRadius={50}
+                fill="#8884d8"
+                dataKey="value"
+                onMouseEnter={(_: any, index: number) => setActiveIndex(index)}
+                onMouseLeave={() => setActiveIndex(null)}
+              >
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
+                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
+                  />
+                ))}
+              </PieComponent>
+              <LegendComponent
+                verticalAlign="bottom"
+                height={36}
+                iconType="circle"
+                formatter={(value: any, entry: any) => (
+                  <span className="text-sm text-gray-700">
+                    {value} ({numeral(entry.payload.count).format("0,0")}건)
+                  </span>
+                )}
+              />
+            </Chart>
+          </ChartContainer>
         )}
       </div>
     </Card>

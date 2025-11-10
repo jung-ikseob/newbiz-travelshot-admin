@@ -1,9 +1,9 @@
+import { supabase } from "@/lib/supabase";
 import { Card, Spin } from "antd";
 import numeral from "numeral";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer } from "recharts";
 import MonthSelector from "./month-selector";
-import { supabase } from "@/lib/supabase";
 
 // 임시 데이터 (API 실패 시 폴백용)
 const mockData: Record<string, Array<{ name: string; count: number; color: string }>> = {
@@ -197,7 +197,7 @@ const OnlineOfflineChart = () => {
                 innerRadius={50}
                 fill="#8884d8"
                 dataKey="value"
-                onMouseEnter={(_, index) => setActiveIndex(index)}
+                onMouseEnter={(_: any, index: number) => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
               >
                 {data.map((entry, index) => (
@@ -212,7 +212,7 @@ const OnlineOfflineChart = () => {
                 verticalAlign="bottom"
                 height={36}
                 iconType="circle"
-                formatter={(value, entry: any) => (
+                formatter={(value: any, entry: any) => (
                   <span className="text-sm text-gray-700">
                     {value} ({numeral(entry.payload.count).format("0,0")}건)
                   </span>
