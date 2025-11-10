@@ -440,9 +440,9 @@ const IndustryChart = () => {
   };
 
   return (
-    <Card className="flex flex-col h-full shadow-sm">
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
+    <Card className="flex flex-col h-full shadow-sm" styles={{ body: { padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' } }}>
+      <div className="mb-2">
+        <div className="flex items-center justify-between mb-1">
           <h3 className="text-base font-semibold text-gray-800">업종별 구매건</h3>
           <div className="flex items-center gap-2">
             <Select
@@ -463,19 +463,19 @@ const IndustryChart = () => {
         </div>
         {/* <p className="text-sm text-gray-500">전체 {numeral(total).format("0,0")}건</p> */}
       </div>
-      <div className="flex items-center justify-center flex-1">
+      <div className="flex items-center justify-center flex-1 min-h-0">
         {loading ? (
           <Spin size="large" />
         ) : (
-          <ChartContainer width="100%" height={280}>
+          <ChartContainer width="100%" height="100%">
             <Chart>
               <PieComponent
                 data={data}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                outerRadius={80}
-                innerRadius={50}
+                outerRadius="70%"
+                innerRadius="45%"
                 fill="#8884d8"
                 dataKey="value"
                 onMouseEnter={(_: any, index: number) => setActiveIndex(index)}
@@ -492,10 +492,16 @@ const IndustryChart = () => {
               </PieComponent>
               <LegendComponent
                 verticalAlign="bottom"
-                height={36}
+                height={40}
                 iconType="circle"
+                wrapperStyle={{
+                  fontSize: '10px',
+                  paddingTop: '2px',
+                  lineHeight: '1.3',
+                  marginBottom: '0'
+                }}
                 formatter={(value: any, entry: any) => (
-                  <span className="text-sm text-gray-700">
+                  <span style={{ fontSize: '10px', whiteSpace: 'nowrap' }}>
                     {value} ({numeral(entry.payload.count).format("0,0")}건)
                   </span>
                 )}

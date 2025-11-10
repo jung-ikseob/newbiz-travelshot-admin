@@ -117,14 +117,14 @@ const CardStatsList = () => {
   return (
     <>
       {/* 통계 차트 섹션 */}
-      <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={24} lg={8}>
+      <Row gutter={[16, 16]} className="mb-6" style={{ minHeight: '400px' }}>
+        <Col xs={24} lg={8} style={{ minHeight: '400px' }}>
           <OnlineOfflineChart />
         </Col>
-        <Col xs={24} lg={8}>
+        <Col xs={24} lg={8} style={{ minHeight: '400px' }}>
           <IndustryChart />
         </Col>
-        <Col xs={24} lg={8}>
+        <Col xs={24} lg={8} style={{ minHeight: '400px' }}>
           <RegionMapChart />
         </Col>
       </Row>

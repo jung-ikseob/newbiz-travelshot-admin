@@ -189,9 +189,9 @@ const OnlineOfflineChart = () => {
   };
 
   return (
-    <Card className="flex flex-col h-full shadow-sm">
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
+    <Card className="flex flex-col h-full shadow-sm" styles={{ body: { padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' } }}>
+      <div className="mb-2">
+        <div className="flex items-center justify-between mb-1">
           <h3 className="text-base font-semibold text-gray-800">월별 온오프라인 구매</h3>
           <MonthSelector
             selectedMonth={selectedMonth}
@@ -200,19 +200,19 @@ const OnlineOfflineChart = () => {
         </div>
         {/* <p className="text-sm text-gray-500">전체 {numeral(total).format("0,0")}건</p> */}
       </div>
-      <div className="flex items-center justify-center flex-1">
+      <div className="flex items-center justify-center flex-1 min-h-0">
         {loading ? (
           <Spin size="large" />
         ) : (
-          <ChartContainer width="100%" height={280}>
+          <ChartContainer width="100%" height="100%">
             <Chart>
               <PieComponent
                 data={data}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                outerRadius={80}
-                innerRadius={50}
+                outerRadius="70%"
+                innerRadius="45%"
                 fill="#8884d8"
                 dataKey="value"
                 onMouseEnter={(_: any, index: number) => setActiveIndex(index)}
