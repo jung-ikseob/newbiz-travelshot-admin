@@ -161,6 +161,14 @@ const OnlineOfflineChart = () => {
 
   console.log("Transformed data for chart:", data);
 
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const ChartContainer = ResponsiveContainer;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const Chart = PieChart;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const PieComponent = Pie;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const LegendComponent = Legend;
 
   return (
     <Card className="flex flex-col h-full shadow-sm">
@@ -178,46 +186,40 @@ const OnlineOfflineChart = () => {
         {loading ? (
           <Spin size="large" />
         ) : (
-          <>
-            {/* @ts-ignore - Recharts type compatibility issue with Next.js 16 */}
-            <ResponsiveContainer width="100%" height={280}>
-              {/* @ts-ignore - Recharts type compatibility issue with Next.js 16 */}
-              <PieChart>
-                {/* @ts-ignore - Recharts type compatibility issue with Next.js 16 */}
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  innerRadius={50}
-                  fill="#8884d8"
-                  dataKey="value"
-                  onMouseEnter={(_, index) => setActiveIndex(index)}
-                  onMouseLeave={() => setActiveIndex(null)}
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                      opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
-                    />
-                  ))}
-                </Pie>
-                {/* @ts-ignore - Recharts type compatibility issue with Next.js 16 */}
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  formatter={(value, entry: any) => (
-                    <span className="text-sm text-gray-700">
-                      {value} ({numeral(entry.payload.count).format("0,0")}건)
-                    </span>
-                  )}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </>
+          <ChartContainer width="100%" height={280}>
+            <Chart>
+              <PieComponent
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={80}
+                innerRadius={50}
+                fill="#8884d8"
+                dataKey="value"
+                onMouseEnter={(_, index) => setActiveIndex(index)}
+                onMouseLeave={() => setActiveIndex(null)}
+              >
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
+                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
+                  />
+                ))}
+              </PieComponent>
+              <LegendComponent
+                verticalAlign="bottom"
+                height={36}
+                iconType="circle"
+                formatter={(value, entry: any) => (
+                  <span className="text-sm text-gray-700">
+                    {value} ({numeral(entry.payload.count).format("0,0")}건)
+                  </span>
+                )}
+              />
+            </Chart>
+          </ChartContainer>
         )}
       </div>
     </Card>
