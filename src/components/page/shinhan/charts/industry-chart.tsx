@@ -146,7 +146,7 @@ const mockData: Record<string, Record<string, Array<{ name: string; count: numbe
     ],
     offline: [
       { name: "요식/유흥", count: 2100, color: "#7C3AED" },
-      { name: "���류/잡화", count: 1750, color: "#A78BFA" },
+      { name: "의류/잡화", count: 1750, color: "#A78BFA" },
       { name: "생활서비스", count: 1650, color: "#C4B5FD" },
       { name: "레저/여행", count: 1100, color: "#DDD6FE" },
       { name: "기타", count: 530, color: "#EDE9FE" },
@@ -172,7 +172,7 @@ const mockData: Record<string, Record<string, Array<{ name: string; count: numbe
     online: [
       { name: "요식/유흥", count: 1080, color: "#7C3AED" },
       { name: "의류/잡화", count: 800, color: "#A78BFA" },
-      { name: "생��서비스", count: 800, color: "#C4B5FD" },
+      { name: "생활서비스", count: 800, color: "#C4B5FD" },
       { name: "레저/여행", count: 580, color: "#DDD6FE" },
       { name: "기타", count: 310, color: "#EDE9FE" },
     ],
@@ -290,7 +290,7 @@ const mockData: Record<string, Record<string, Array<{ name: string; count: numbe
     ],
     offline: [
       { name: "요식/유흥", count: 1650, color: "#7C3AED" },
-      { name: "의���/잡화", count: 1780, color: "#A78BFA" },
+      { name: "의류/잡화", count: 1780, color: "#A78BFA" },
       { name: "생활서비스", count: 1820, color: "#C4B5FD" },
       { name: "레저/여행", count: 1020, color: "#DDD6FE" },
       { name: "기타", count: 620, color: "#EDE9FE" },
@@ -440,40 +440,43 @@ const IndustryChart = () => {
         {loading ? (
           <Spin size="large" />
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={80}
-                innerRadius={50}
-                fill="#8884d8"
-                dataKey="value"
-                onMouseEnter={(_, index) => setActiveIndex(index)}
-                onMouseLeave={() => setActiveIndex(null)}
-              >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.color}
-                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
-                  />
-                ))}
-              </Pie>
-              <Legend
-                verticalAlign="bottom"
-                height={36}
-                iconType="circle"
-                formatter={(value, entry: any) => (
-                  <span className="text-sm text-gray-700">
-                    {value} ({numeral(entry.payload.count).format("0,0")}건)
-                  </span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <>
+            {/* @ts-expect-error - Recharts type compatibility issue with Next.js 16 */}
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  innerRadius={50}
+                  fill="#8884d8"
+                  dataKey="value"
+                  onMouseEnter={(_, index) => setActiveIndex(index)}
+                  onMouseLeave={() => setActiveIndex(null)}
+                >
+                  {data.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.color}
+                      opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
+                    />
+                  ))}
+                </Pie>
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  iconType="circle"
+                  formatter={(value, entry: any) => (
+                    <span className="text-sm text-gray-700">
+                      {value} ({numeral(entry.payload.count).format("0,0")}건)
+                    </span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </>
         )}
       </div>
     </Card>
