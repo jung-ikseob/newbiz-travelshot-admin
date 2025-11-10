@@ -1,13 +1,14 @@
-import { Card, Modal, Button } from "antd";
-import { useState, useMemo } from "react";
+import { supabase } from "@/lib/supabase";
+import { Button, Card, Modal, Spin } from "antd";
+import { Maximize2 } from "lucide-react";
+import numeral from "numeral";
+import { useEffect, useMemo, useState } from "react";
 import {
   ComposableMap,
   Geographies,
   Geography,
 } from "react-simple-maps";
-import numeral from "numeral";
 import MonthSelector from "./month-selector";
-import { Maximize2 } from "lucide-react";
 
 // 임시 데이터 - 실제 구 이름 매핑
 const mockData: Record<string, Record<string, number>> = {
@@ -67,13 +68,20 @@ const mockData: Record<string, Record<string, number>> = {
   },
 };
 
+interface RegionStatsResponse {
+  card_use_ymd: string;
+  sgg_nm: string;
+  card_use_sum_amt: number;
+}
+
 interface MapContentProps {
   selectedMonth: string;
   isModal?: boolean;
+  currentData: Record<string, number>;
+  loading: boolean;
 }
 
-const MapContent = ({ selectedMonth, isModal = false }: MapContentProps) => {
-  const currentData = mockData[selectedMonth] || mockData["2025-03"];
+const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: MapContentProps) => {
   const [tooltipContent, setTooltipContent] = useState("");
 
   const { minValue, maxValue, topDistricts } = useMemo(() => {
@@ -103,14 +111,22 @@ const MapContent = ({ selectedMonth, isModal = false }: MapContentProps) => {
   const width = isModal ? 600 : 320;
   const height = isModal ? 600 : 280;
 
+  if (loading) {
+    return (
+      <div className="relative flex items-center justify-center h-full">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
-    <div className="relative h-full flex flex-col">
-      <div className="flex gap-1 flex-1">
+    <div className="relative flex flex-col h-full">
+      <div className="flex flex-1 gap-1">
         {/* 좌측: 지도 */}
-        <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center justify-center flex-1">
           {/* 툴팁 */}
           {tooltipContent && (
-            <div className="absolute top-0 left-0 bg-white px-2 py-1 rounded shadow-lg border text-xs z-10">
+            <div className="absolute top-0 left-0 z-10 px-2 py-1 text-xs bg-white border rounded shadow-lg">
               {tooltipContent}
             </div>
           )}
@@ -166,16 +182,11 @@ const MapContent = ({ selectedMonth, isModal = false }: MapContentProps) => {
         </div>
 
         {/* 우측: TOP 6 */}
-        <div className={`${isModal ? "w-36" : "w-32"} flex flex-col justify-center`}>
+        <div className={`${isModal ? "w-48" : "w-40"} flex flex-col justify-center`}>
           <div className={isModal ? "space-y-2" : "space-y-1"}>
             {topDistricts.map(([district, value], index) => (
-              <div key={district} className={isModal ? "text-xs" : "text-[10px]"}>
-                <div className="text-gray-600 font-medium">
-                  {index + 1}. {district}
-                </div>
-                <div className={`text-gray-500 ${isModal ? "text-[11px]" : "text-[9px]"}`}>
-                  {numeral(value).format("0,0")}원
-                </div>
+              <div key={district} className={`text-gray-600 ${isModal ? "text-xs" : "text-[10px]"}`}>
+                {index + 1}. {district}: {numeral(value).format("0,0")}원
               </div>
             ))}
           </div>
@@ -204,10 +215,56 @@ const MapContent = ({ selectedMonth, isModal = false }: MapContentProps) => {
 const RegionMapChart = () => {
   const [selectedMonth, setSelectedMonth] = useState("2025-03");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [apiData, setApiData] = useState<Record<string, number> | null>(null);
+
+  // API 호출
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const monthYm = selectedMonth.replace("-", "");
+
+        const { data, error } = await supabase.rpc("get_region_stats_by_month", {
+          p_month_ym: monthYm,
+        });
+
+        console.log("Region API Response:", { data, error, monthYm });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          console.log("Region Parsed result:", data);
+
+          // API 데이터를 구별로 매핑
+          const regionData: Record<string, number> = {};
+          data.forEach((item: RegionStatsResponse) => {
+            regionData[item.sgg_nm] = item.card_use_sum_amt;
+          });
+
+          console.log("Region Chart data:", regionData);
+          setApiData(regionData);
+        } else {
+          console.log("No data returned, using mock data");
+          setApiData(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch region stats:", error);
+        setApiData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedMonth]);
+
+  // API 데이터가 있으면 사용, 없으면 mock 데이터 사용
+  const currentData = apiData || mockData[selectedMonth] || mockData["2025-03"];
 
   return (
     <>
-      <Card className="shadow-sm h-full flex flex-col" styles={{ body: { padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' } }}>
+      <Card className="flex flex-col h-full shadow-sm" styles={{ body: { padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' } }}>
         <div className="mb-2">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-base font-semibold text-gray-800">
@@ -230,7 +287,12 @@ const RegionMapChart = () => {
         </div>
 
         <div className="flex-1 min-h-0">
-          <MapContent selectedMonth={selectedMonth} isModal={false} />
+          <MapContent
+            selectedMonth={selectedMonth}
+            isModal={false}
+            currentData={currentData}
+            loading={loading}
+          />
         </div>
       </Card>
 
@@ -243,14 +305,19 @@ const RegionMapChart = () => {
         footer={null}
         centered
       >
-        <div className="mb-3 flex justify-end">
+        <div className="flex justify-end mb-3">
           <MonthSelector
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
           />
         </div>
         <div className="py-4">
-          <MapContent selectedMonth={selectedMonth} isModal={true} />
+          <MapContent
+            selectedMonth={selectedMonth}
+            isModal={true}
+            currentData={currentData}
+            loading={loading}
+          />
         </div>
       </Modal>
     </>

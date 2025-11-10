@@ -1,11 +1,11 @@
-import { Card } from "antd";
+import { Card, Spin } from "antd";
 import numeral from "numeral";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer } from "recharts";
 import MonthSelector from "./month-selector";
+import { supabase } from "@/lib/supabase";
 
-// 임시 데이터 (2024-01 ~ 2025-08) - 건수 기반
-// 온라인이 점진적으로 증가하는 추세
+// 임시 데이터 (API 실패 시 폴백용)
 const mockData: Record<string, Array<{ name: string; count: number; color: string }>> = {
   "2024-01": [
     { name: "오프라인", count: 7200, color: "#7C3AED" },
@@ -89,48 +89,78 @@ const mockData: Record<string, Array<{ name: string; count: number; color: strin
   ],
 };
 
+interface CardStatsResponse {
+  card_use_ymd: string;
+  stml_type_nm: string;
+  card_use_sum_cnt: number;
+}
+
 const OnlineOfflineChart = () => {
   const [selectedMonth, setSelectedMonth] = useState("2025-03");
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const rawData = mockData[selectedMonth] || mockData["2025-03"];
+  const [loading, setLoading] = useState(false);
+  const [apiData, setApiData] = useState<Array<{ name: string; count: number; color: string }> | null>(null);
+
+  // API 호출
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const monthYm = selectedMonth.replace("-", "");
+        const { data, error } = await supabase.rpc("get_card_stats_by_month", {
+          month_ym: monthYm,
+        });
+
+        console.log("API Response:", { data, error, monthYm });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          console.log("Parsed result:", data);
+
+          // API 데이터를 온라인/오프라인으로 구분
+          const onlineData = data.find((item: CardStatsResponse) => item.stml_type_nm === "온라인");
+          const offlineData = data.find((item: CardStatsResponse) => item.stml_type_nm === "오프라인");
+
+          const chartData = [
+            { name: "오프라인", count: offlineData?.card_use_sum_cnt || 0, color: "#7C3AED" },
+            { name: "온라인", count: onlineData?.card_use_sum_cnt || 0, color: "#A78BFA" },
+          ];
+
+          console.log("Chart data:", chartData);
+          setApiData(chartData);
+        } else {
+          console.log("No data returned, using mock data");
+          setApiData(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch card stats:", error);
+        // API 실패 시 mock 데이터 사용
+        setApiData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedMonth]);
+
+  // API 데이터가 있으면 사용, 없으면 mock 데이터 사용
+  const rawData = apiData || mockData[selectedMonth] || mockData["2025-03"];
   const total = rawData.reduce((sum, item) => sum + item.count, 0);
+
+  console.log("Raw data:", rawData);
+  console.log("Total:", total);
 
   // 비율 계산을 위한 데이터 변환
   const data = rawData.map(item => ({
     ...item,
-    value: (item.count / total) * 100, // 차트용 비율
+    value: total > 0 ? (item.count / total) * 100 : 0, // 차트용 비율 (0으로 나누기 방지)
     count: item.count, // 범례용 건수
   }));
 
-  const renderCustomLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    percent,
-    index,
-  }: any) => {
-    // hover 상태일 때만 표시
-    if (activeIndex !== index) return null;
+  console.log("Transformed data for chart:", data);
 
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor={x > cx ? "start" : "end"}
-        dominantBaseline="central"
-        className="text-sm font-semibold"
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
-  };
 
   return (
     <Card className="flex flex-col h-full shadow-sm">
@@ -145,14 +175,16 @@ const OnlineOfflineChart = () => {
         {/* <p className="text-sm text-gray-500">전체 {numeral(total).format("0,0")}건</p> */}
       </div>
       <div className="flex items-center justify-center flex-1">
-        <ResponsiveContainer width="100%" height={280}>
+        {loading ? (
+          <Spin size="large" />
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={renderCustomLabel}
               outerRadius={80}
               innerRadius={50}
               fill="#8884d8"
@@ -161,7 +193,11 @@ const OnlineOfflineChart = () => {
               onMouseLeave={() => setActiveIndex(null)}
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.color}
+                  opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
+                />
               ))}
             </Pie>
             <Legend
@@ -176,6 +212,7 @@ const OnlineOfflineChart = () => {
             />
           </PieChart>
         </ResponsiveContainer>
+        )}
       </div>
     </Card>
   );

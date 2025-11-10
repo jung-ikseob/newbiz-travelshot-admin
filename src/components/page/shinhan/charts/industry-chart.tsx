@@ -1,6 +1,7 @@
-import { Card, Select } from "antd";
+import { supabase } from "@/lib/supabase";
+import { Card, Select, Spin } from "antd";
 import numeral from "numeral";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer } from "recharts";
 import MonthSelector from "./month-selector";
 
@@ -329,11 +330,79 @@ const mockData: Record<string, Record<string, Array<{ name: string; count: numbe
   },
 };
 
+// 업종별 색상 매핑
+const INDUSTRY_COLORS: Record<string, string> = {
+  "요식/유흥": "#7C3AED",
+  "의류/잡화": "#A78BFA",
+  "생활서비스": "#C4B5FD",
+  "레저/여행": "#DDD6FE",
+  "기타": "#EDE9FE",
+};
+
+interface IndustryStatsResponse {
+  card_use_ymd: string;
+  frcs_tpbiz_cd: string;
+  card_use_sum_cnt: number;
+  tpbiz_small_nm: string;
+}
+
 const IndustryChart = () => {
   const [selectedMonth, setSelectedMonth] = useState("2025-03");
   const [selectedType, setSelectedType] = useState<"online" | "offline">("online");
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const rawData = mockData[selectedMonth]?.[selectedType] || mockData["2025-03"].online;
+  const [loading, setLoading] = useState(false);
+  const [apiData, setApiData] = useState<Array<{ name: string; count: number; color: string }> | null>(null);
+
+  // API 호출
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const monthYm = selectedMonth.replace("-", "");
+        const stlmType = selectedType === "online" ? "0" : "1";
+
+        const { data, error } = await supabase.rpc("get_top5_stats_by_month", {
+          p_stml_type: stlmType,
+          p_month_ym: monthYm,
+        });
+
+        console.log("Industry API Response:", { data, error, monthYm, stlmType });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          console.log("Industry Parsed result:", data);
+
+          const chartData = data.map((item: IndustryStatsResponse, index: number) => {
+            const industryName = item.tpbiz_small_nm;
+            const color = INDUSTRY_COLORS[industryName] || `hsl(${index * 60}, 70%, 70%)`;
+
+            return {
+              name: industryName,
+              count: item.card_use_sum_cnt,
+              color: color,
+            };
+          });
+
+          console.log("Industry Chart data:", chartData);
+          setApiData(chartData);
+        } else {
+          console.log("No data returned, using mock data");
+          setApiData(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch industry stats:", error);
+        setApiData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedMonth, selectedType]);
+
+  // API 데이터가 있으면 사용, 없으면 mock 데이터 사용
+  const rawData = apiData || mockData[selectedMonth]?.[selectedType] || mockData["2025-03"].online;
   const total = rawData.reduce((sum, item) => sum + item.count, 0);
 
   // 비율 계산을 위한 데이터 변환
@@ -343,35 +412,6 @@ const IndustryChart = () => {
     count: item.count, // 범례용 건수
   }));
 
-  const renderCustomLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    percent,
-    index,
-  }: any) => {
-    // hover 상태일 때만 표시
-    if (activeIndex !== index) return null;
-
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor={x > cx ? "start" : "end"}
-        dominantBaseline="central"
-        className="text-sm font-semibold"
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
-  };
 
   return (
     <Card className="flex flex-col h-full shadow-sm">
@@ -398,37 +438,44 @@ const IndustryChart = () => {
         {/* <p className="text-sm text-gray-500">전체 {numeral(total).format("0,0")}건</p> */}
       </div>
       <div className="flex items-center justify-center flex-1">
-        <ResponsiveContainer width="100%" height={280}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={renderCustomLabel}
-              outerRadius={80}
-              innerRadius={50}
-              fill="#8884d8"
-              dataKey="value"
-              onMouseEnter={(_, index) => setActiveIndex(index)}
-              onMouseLeave={() => setActiveIndex(null)}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Legend
-              verticalAlign="bottom"
-              height={36}
-              iconType="circle"
-              formatter={(value, entry: any) => (
-                <span className="text-sm text-gray-700">
-                  {value} ({numeral(entry.payload.count).format("0,0")}건)
-                </span>
-              )}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+        {loading ? (
+          <Spin size="large" />
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={80}
+                innerRadius={50}
+                fill="#8884d8"
+                dataKey="value"
+                onMouseEnter={(_, index) => setActiveIndex(index)}
+                onMouseLeave={() => setActiveIndex(null)}
+              >
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
+                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
+                  />
+                ))}
+              </Pie>
+              <Legend
+                verticalAlign="bottom"
+                height={36}
+                iconType="circle"
+                formatter={(value, entry: any) => (
+                  <span className="text-sm text-gray-700">
+                    {value} ({numeral(entry.payload.count).format("0,0")}건)
+                  </span>
+                )}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </Card>
   );
