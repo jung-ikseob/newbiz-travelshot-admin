@@ -441,6 +441,7 @@ const IndustryChart = () => {
         {loading ? (
           <Spin size="large" />
         ) : (
+          // @ts-ignore - Recharts type compatibility issue
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
