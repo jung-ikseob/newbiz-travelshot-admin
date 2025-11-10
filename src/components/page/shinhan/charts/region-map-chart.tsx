@@ -47,7 +47,7 @@ const mockData: Record<string, Record<string, number>> = {
     "마포구": 5600000,
     "중구": 5300000,
     "강동구": 4700000,
-    "강서구": 4500000,
+    "���서구": 4500000,
     "용산구": 4400000,
     "은평구": 4100000,
     "중랑구": 4000000,
@@ -129,7 +129,7 @@ const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: Ma
         <div className="flex flex-col items-center justify-center flex-1">
           {/* 툴팁 */}
           {tooltipContent && (
-            <div className="absolute top-0 left-0 z-10 px-3 py-2 text-2xl bg-white border rounded shadow-lg">
+            <div className={`absolute top-0 left-0 z-10 px-3 py-2 ${isModal ? "text-2xl" : "text-xs"} bg-white border rounded shadow-lg`}>
               {tooltipContent}
             </div>
           )}
@@ -307,6 +307,7 @@ const RegionMapChart = () => {
         width={1200}
         footer={null}
         centered
+        bodyStyle={{ minHeight: "900px" }}
       >
         <div className="flex justify-end mb-3">
           <MonthSelector
@@ -314,7 +315,7 @@ const RegionMapChart = () => {
             onMonthChange={setSelectedMonth}
           />
         </div>
-        <div className="py-4">
+        <div className="py-4 h-full">
           <MapContent
             selectedMonth={selectedMonth}
             isModal={true}

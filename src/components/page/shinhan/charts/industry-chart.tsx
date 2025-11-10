@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, Select, Spin } from "antd";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer } from "recharts";
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import MonthSelector from "./month-selector";
 
 // 임시 데이터 (2024-01 ~ 2025-08, 온/오프라인별) - 건수 기반
@@ -222,7 +222,7 @@ const mockData: Record<string, Record<string, Array<{ name: string; count: numbe
       { name: "의류/잡화", count: 920, color: "#A78BFA" },
       { name: "생활서비스", count: 860, color: "#C4B5FD" },
       { name: "레저/여행", count: 530, color: "#DDD6FE" },
-      { name: "기타", count: 340, color: "#EDE9FE" },
+      { name: "기��", count: 340, color: "#EDE9FE" },
     ],
     offline: [
       { name: "요식/유흥", count: 1850, color: "#7C3AED" },
@@ -420,6 +420,24 @@ const IndustryChart = () => {
   const PieComponent: any = Pie;
   // @ts-ignore - Recharts type compatibility issue with Next.js 16
   const LegendComponent: any = Legend;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const TooltipComponent: any = Tooltip;
+
+  // 커스텀 Tooltip 컴포넌트
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
+          <p className="text-sm font-semibold text-gray-800">{data.name}</p>
+          <p className="text-sm text-gray-700">
+            {numeral(data.count).format("0,0")}건 ({data.value.toFixed(1)}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <Card className="flex flex-col h-full shadow-sm">
@@ -463,6 +481,7 @@ const IndustryChart = () => {
                 onMouseEnter={(_: any, index: number) => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
               >
+                <TooltipComponent content={<CustomTooltip />} />
                 {data.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}

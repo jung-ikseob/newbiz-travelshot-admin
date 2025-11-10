@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, Spin } from "antd";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer } from "recharts";
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import MonthSelector from "./month-selector";
 
 // 임시 데이터 (API 실패 시 폴백용)
@@ -20,7 +20,7 @@ const mockData: Record<string, Array<{ name: string; count: number; color: strin
     { name: "온라인", count: 3200, color: "#A78BFA" },
   ],
   "2024-04": [
-    { name: "오프라인", count: 6600, color: "#7C3AED" },
+    { name: "오프라���", count: 6600, color: "#7C3AED" },
     { name: "온라인", count: 3400, color: "#A78BFA" },
   ],
   "2024-05": [
@@ -56,7 +56,7 @@ const mockData: Record<string, Array<{ name: string; count: number; color: strin
     { name: "온라인", count: 4500, color: "#A78BFA" },
   ],
   "2025-01": [
-    { name: "오프라인", count: 5400, color: "#7C3AED" },
+    { name: "오프라��", count: 5400, color: "#7C3AED" },
     { name: "온라인", count: 4600, color: "#A78BFA" },
   ],
   "2025-02": [
@@ -169,6 +169,24 @@ const OnlineOfflineChart = () => {
   const PieComponent: any = Pie;
   // @ts-ignore - Recharts type compatibility issue with Next.js 16
   const LegendComponent: any = Legend;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const TooltipComponent: any = Tooltip;
+
+  // 커스텀 Tooltip 컴포넌트
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
+          <p className="text-sm font-semibold text-gray-800">{data.name}</p>
+          <p className="text-sm text-gray-700">
+            {numeral(data.count).format("0,0")}건 ({data.value.toFixed(1)}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <Card className="flex flex-col h-full shadow-sm">
@@ -200,6 +218,7 @@ const OnlineOfflineChart = () => {
                 onMouseEnter={(_: any, index: number) => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
               >
+                <TooltipComponent content={<CustomTooltip />} />
                 {data.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
