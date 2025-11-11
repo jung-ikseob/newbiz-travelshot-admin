@@ -5,6 +5,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const page = req.query.page ? Number(req.query.page) : 1;
     const limit = 20;
+
+    // 페이지 번호 유효성 검사
+    if (page < 1 || !Number.isInteger(page)) {
+      return res.status(400).json({
+        code: -1,
+        message: "Invalid page number",
+        data: {
+          items: [],
+          page: {
+            currentPage: 1,
+            pageSize: limit,
+            totalPage: 0,
+            totalCount: 0,
+          },
+        },
+      });
+    }
+
+    // 전체 데이터 개수 먼저 조회
+    const { count, error: countError } = await supabase
+      .from('SHCARD_STATS')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) {
+      console.error('Count query error:', countError);
+      return res.status(500).json({
+        code: -1,
+        message: countError.message,
+        data: null,
+      });
+    }
+
+    const totalCount = count || 0;
+    const totalPage = Math.ceil(totalCount / limit);
+
+    // 페이지가 총 페이지 수를 초과하는 경우 빈 결과 반환
+    if (page > totalPage && totalCount > 0) {
+      return res.status(200).json({
+        code: 0,
+        message: "Page out of range",
+        data: {
+          items: [],
+          page: {
+            currentPage: page,
+            pageSize: limit,
+            totalPage,
+            totalCount,
+          },
+        },
+      });
+    }
+
     const offset = (page - 1) * limit;
 
     // SHCARD_STATS 테이블에서 데이터 조회 (조인 키 포함)
@@ -23,18 +75,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: null,
       });
     }
-
-    // 전체 데이터 개수 조회
-    const { count, error: countError } = await supabase
-      .from('SHCARD_STATS')
-      .select('*', { count: 'exact', head: true });
-
-    if (countError) {
-      console.error('Count query error:', countError);
-    }
-
-    const totalCount = count || 0;
-    const totalPage = Math.ceil(totalCount / limit);
 
     // statsData에서 고유한 addr_cd와 tpbiz_cd 추출
     const addrCodesSet = new Set(statsData?.map(item => item.frcs_addr_cd).filter(Boolean));

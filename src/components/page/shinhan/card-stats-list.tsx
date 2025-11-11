@@ -1,14 +1,26 @@
 import { useCardStats } from "@/client/shinhan/card-stats";
 import DefaultTable from "@/components/shared/ui/default-table";
 import { ICardStats } from "@/types/shinhan-card";
-import { Alert, Row, Col } from "antd";
+import { Alert, Row, Col, Spin } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/router";
 import numeral from "numeral";
-import { useCallback, useEffect, useMemo } from "react";
-import OnlineOfflineChart from "./charts/online-offline-chart";
-import IndustryChart from "./charts/industry-chart";
-import RegionMapChart from "./charts/region-map-chart";
+import { useCallback, useEffect, useMemo, lazy, Suspense, memo } from "react";
+import { formatCardUseDate, formatStmlType } from "@/utils/chart-helpers";
+
+// 코드 스플리팅: 차트 컴포넌트들을 동적으로 로드하여 초기 로딩 속도 향상
+const OnlineOfflineChart = lazy(() => import("./charts/online-offline-chart"));
+const IndustryChart = lazy(() => import("./charts/industry-chart"));
+const RegionMapChart = lazy(() => import("./charts/region-map-chart"));
+
+// 차트 로딩 중 표시할 컴포넌트
+const ChartLoadingFallback = memo(() => (
+  <div className="flex items-center justify-center h-full min-h-[400px]">
+    <Spin size="large" />
+  </div>
+));
+
+ChartLoadingFallback.displayName = "ChartLoadingFallback";
 
 const CardStatsList = () => {
   const router = useRouter();
@@ -19,6 +31,22 @@ const CardStatsList = () => {
   useEffect(() => {
     mutate();
   }, [currentPage, mutate]);
+
+  // 유효하지 않은 페이지 접근 시 첫 페이지로 리다이렉트
+  useEffect(() => {
+    if (!isLoading && data?.data) {
+      const totalPages = data.data.page.totalPage;
+      const totalCount = data.data.page.totalCount;
+
+      // 데이터가 없거나 현재 페이지가 유효 범위를 벗어난 경우
+      if (totalCount === 0 || currentPage > totalPages || currentPage < 1) {
+        router.replace({
+          pathname: router.pathname,
+          query: { page: 1 },
+        });
+      }
+    }
+  }, [isLoading, data, currentPage, router]);
 
   // 데이터가 변경될 때마다 새로운 배열 참조 생성
   const tableData = useMemo(() => {
@@ -42,13 +70,7 @@ const CardStatsList = () => {
       dataIndex: "card_use_ymd",
       width: 120,
       align: "center",
-      render: (value: string) => {
-        // YYYYMMDD 형식을 YYYY-MM-DD로 변환
-        if (value && value.length === 8) {
-          return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
-        }
-        return value;
-      },
+      render: (value: string) => formatCardUseDate(value),
     },
     {
       title: "소재지(시도)",
@@ -85,9 +107,7 @@ const CardStatsList = () => {
       dataIndex: "stml_type",
       width: 100,
       align: "center",
-      render: (value: number) => {
-        return value === 1 ? "온라인" : "오프라인";
-      },
+      render: (value: number) => formatStmlType(value),
     },
     {
       title: "카드이용금액계",
@@ -116,16 +136,22 @@ const CardStatsList = () => {
 
   return (
     <>
-      {/* 통계 차트 섹션 */}
+      {/* 통계 차트 섹션 - Suspense로 감싸서 코드 스플리팅 적용 */}
       <Row gutter={[16, 16]} className="mb-6" style={{ minHeight: '400px' }}>
         <Col xs={24} lg={8} style={{ minHeight: '400px' }}>
-          <OnlineOfflineChart />
+          <Suspense fallback={<ChartLoadingFallback />}>
+            <OnlineOfflineChart />
+          </Suspense>
         </Col>
         <Col xs={24} lg={8} style={{ minHeight: '400px' }}>
-          <IndustryChart />
+          <Suspense fallback={<ChartLoadingFallback />}>
+            <IndustryChart />
+          </Suspense>
         </Col>
         <Col xs={24} lg={8} style={{ minHeight: '400px' }}>
-          <RegionMapChart />
+          <Suspense fallback={<ChartLoadingFallback />}>
+            <RegionMapChart />
+          </Suspense>
         </Col>
       </Row>
 
@@ -145,11 +171,13 @@ const CardStatsList = () => {
         className="mt-3"
         countLabel={data?.data.page.totalCount}
         rowKey={(record, index) =>
-          `${currentPage}-${index}-${record.card_use_ymd}-${record.card_use_sum_amt}`
+          record
+            ? `${currentPage}-${index}-${record.card_use_ymd || ''}-${record.card_use_sum_amt || 0}`
+            : `${currentPage}-${index}-empty`
         }
       />
     </>
   );
 };
 
-export default CardStatsList;
+export default memo(CardStatsList);

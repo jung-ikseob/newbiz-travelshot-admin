@@ -1,10 +1,8 @@
 import { supabase } from "@/lib/supabase";
-import { Select } from "antd";
-import { useCallback, useEffect, useMemo, useState, memo } from "react";
-import { transformToChartData } from "@/utils/chart-helpers";
-import { DEFAULT_MONTH } from "@/constants/shinhan-charts";
-import ChartCard from "@/components/shared/charts/chart-card";
-import DonutChart from "@/components/shared/charts/donut-chart";
+import { Card, Select, Spin } from "antd";
+import numeral from "numeral";
+import { useEffect, useState } from "react";
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import MonthSelector from "./month-selector";
 
 // 임시 데이터 (2024-01 ~ 2025-08, 온/오프라인별) - 건수 기반
@@ -348,20 +346,14 @@ interface IndustryStatsResponse {
   tpbiz_small_nm: string;
 }
 
-/**
- * 업종별 구매건 차트 컴포넌트 (리팩토링 버전)
- * - useMemo, useCallback을 사용한 성능 최적화
- * - 공통 컴포넌트(ChartCard, DonutChart) 활용
- * - transformToChartData 헬퍼 함수 사용
- */
 const IndustryChart = () => {
-  const [selectedMonth, setSelectedMonth] = useState(DEFAULT_MONTH);
+  const [selectedMonth, setSelectedMonth] = useState("2025-03");
   const [selectedType, setSelectedType] = useState<"online" | "offline">("online");
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [apiData, setApiData] = useState<Array<{ name: string; count: number; color: string }> | null>(null);
 
-  // API 호출 - useEffect는 그대로 유지
+  // API 호출
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -409,62 +401,121 @@ const IndustryChart = () => {
     fetchData();
   }, [selectedMonth, selectedType]);
 
-  // API 데이터가 있으면 사용, 없으면 mock 데이터 사용 - useMemo로 최적화
-  const rawData = useMemo(
-    () => apiData || mockData[selectedMonth]?.[selectedType] || mockData["2025-03"].online,
-    [apiData, selectedMonth, selectedType]
-  );
+  // API 데이터가 있으면 사용, 없으면 mock 데이터 사용
+  const rawData = apiData || mockData[selectedMonth]?.[selectedType] || mockData["2025-03"].online;
 
-  // 차트 데이터 변환 (정렬 + 비율 계산) - useMemo로 최적화
-  const chartData = useMemo(() => {
-    return transformToChartData(rawData, true); // true = 정렬
-  }, [rawData]);
+  // count 기준으로 내림차순 정렬
+  const sortedRawData = [...rawData].sort((a, b) => b.count - a.count);
 
-  // 이벤트 핸들러 - useCallback으로 최적화
-  const handleMouseEnter = useCallback((index: number) => {
-    setActiveIndex(index);
-  }, []);
+  const total = sortedRawData.reduce((sum, item) => sum + item.count, 0);
 
-  const handleMouseLeave = useCallback(() => {
-    setActiveIndex(null);
-  }, []);
+  // 비율 계산을 위한 데이터 변환
+  const data = sortedRawData.map(item => ({
+    ...item,
+    value: (item.count / total) * 100, // 차트용 비율
+    count: item.count, // 범례용 건수
+  }));
 
-  const handleTypeChange = useCallback((value: "online" | "offline") => {
-    setSelectedType(value);
-  }, []);
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const ChartContainer: any = ResponsiveContainer;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const Chart: any = PieChart;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const PieComponent: any = Pie;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const LegendComponent: any = Legend;
+  // @ts-ignore - Recharts type compatibility issue with Next.js 16
+  const TooltipComponent: any = Tooltip;
 
-  const handleMonthChange = useCallback((month: string) => {
-    setSelectedMonth(month);
-  }, []);
+  // 커스텀 Tooltip 컴포넌트
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
+          <p className="text-sm font-semibold text-gray-800">{data.name}</p>
+          <p className="text-sm text-gray-700">
+            {numeral(data.count).format("0,0")}건 ({data.value.toFixed(1)}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
-    <ChartCard
-      title="업종별 구매건"
-      loading={loading}
-      extra={
-        <>
-          <Select
-            value={selectedType}
-            onChange={handleTypeChange}
-            size="small"
-            style={{ width: 90 }}
-            options={[
-              { value: "online", label: "온라인" },
-              { value: "offline", label: "오프라인" },
-            ]}
-          />
-          <MonthSelector selectedMonth={selectedMonth} onMonthChange={handleMonthChange} />
-        </>
-      }
-    >
-      <DonutChart
-        data={chartData}
-        activeIndex={activeIndex}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      />
-    </ChartCard>
+    <Card className="flex flex-col h-full shadow-sm" styles={{ body: { padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' } }}>
+      <div className="mb-2">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-base font-semibold text-gray-800">업종별 구매건</h3>
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedType}
+              onChange={setSelectedType}
+              size="small"
+              style={{ width: 90 }}
+              options={[
+                { value: "online", label: "온라인" },
+                { value: "offline", label: "오프라인" },
+              ]}
+            />
+            <MonthSelector
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+            />
+          </div>
+        </div>
+        {/* <p className="text-sm text-gray-500">전체 {numeral(total).format("0,0")}건</p> */}
+      </div>
+      <div className="flex items-center justify-center flex-1 min-h-0">
+        {loading ? (
+          <Spin size="large" />
+        ) : (
+          <ChartContainer width="100%" height="100%">
+            <Chart>
+              <PieComponent
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius="70%"
+                innerRadius="45%"
+                fill="#8884d8"
+                dataKey="value"
+                onMouseEnter={(_: any, index: number) => setActiveIndex(index)}
+                onMouseLeave={() => setActiveIndex(null)}
+              >
+                <TooltipComponent content={<CustomTooltip />} />
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
+                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
+                  />
+                ))}
+              </PieComponent>
+              <LegendComponent
+                verticalAlign="bottom"
+                height={40}
+                iconType="circle"
+                wrapperStyle={{
+                  fontSize: '10px',
+                  paddingTop: '2px',
+                  lineHeight: '1.3',
+                  marginBottom: '0'
+                }}
+                formatter={(value: any, entry: any) => (
+                  <span style={{ fontSize: '10px', whiteSpace: 'nowrap' }}>
+                    {value} ({numeral(entry.payload.count).format("0,0")}건)
+                  </span>
+                )}
+              />
+            </Chart>
+          </ChartContainer>
+        )}
+      </div>
+    </Card>
   );
 };
 
-export default memo(IndustryChart);
+export default IndustryChart;
