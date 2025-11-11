@@ -403,10 +403,14 @@ const IndustryChart = () => {
 
   // API 데이터가 있으면 사용, 없으면 mock 데이터 사용
   const rawData = apiData || mockData[selectedMonth]?.[selectedType] || mockData["2025-03"].online;
-  const total = rawData.reduce((sum, item) => sum + item.count, 0);
+
+  // count 기준으로 내림차순 정렬
+  const sortedRawData = [...rawData].sort((a, b) => b.count - a.count);
+
+  const total = sortedRawData.reduce((sum, item) => sum + item.count, 0);
 
   // 비율 계산을 위한 데이터 변환
-  const data = rawData.map(item => ({
+  const data = sortedRawData.map(item => ({
     ...item,
     value: (item.count / total) * 100, // 차트용 비율
     count: item.count, // 범례용 건수
