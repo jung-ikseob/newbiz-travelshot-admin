@@ -26,5 +26,9 @@ export interface ICardStatsResponse {
       totalPage: number;
       totalCount: number;
     };
+    cursor?: {
+      lastCardUseYmd: string;
+      lastId: number;
+    } | null;
   };
 }

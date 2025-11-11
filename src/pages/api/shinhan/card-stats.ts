@@ -5,6 +5,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const page = req.query.page ? Number(req.query.page) : 1;
     const limit = 20;
+    const lastCardUseYmd = req.query.lastCardUseYmd as string | undefined;
+    const lastId = req.query.lastId ? Number(req.query.lastId) : undefined;
 
     // 페이지 번호 유효성 검사
     if (page < 1 || !Number.isInteger(page)) {
@@ -23,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // 전체 데이터 개수 먼저 조회
+    // 전체 데이터 개수 조회 (캐싱을 위해 한 번만 조회)
     const { count, error: countError } = await supabase
       .from('SHCARD_STATS')
       .select('*', { count: 'exact', head: true });
@@ -57,15 +59,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const offset = (page - 1) * limit;
-
-    // SHCARD_STATS 테이블에서 데이터 조회 (조인 키 포함)
-    const { data: statsData, error: statsError } = await supabase
+    // 커서 기반 페이지네이션: lastCardUseYmd와 lastId가 있으면 사용, 없으면 offset 방식
+    let statsQuery = supabase
       .from('SHCARD_STATS')
-      .select('card_use_ymd, card_use_sum_amt, card_use_sum_cnt, stml_type, frcs_addr_cd, frcs_tpbiz_cd, id')
-      .range(offset, offset + limit - 1)
+      .select('card_use_ymd, card_use_sum_amt, card_use_sum_cnt, stml_type, frcs_addr_cd, frcs_tpbiz_cd, id');
+
+    if (lastCardUseYmd && lastId) {
+      // 커서 기반: 이전 페이지의 마지막 항목 이후 데이터 조회
+      // (card_use_ymd < lastCardUseYmd) OR (card_use_ymd = lastCardUseYmd AND id < lastId)
+      statsQuery = statsQuery.or(
+        `card_use_ymd.lt.${lastCardUseYmd},and(card_use_ymd.eq.${lastCardUseYmd},id.lt.${lastId})`
+      );
+    } else {
+      // offset 방식: 첫 페이지이거나 커서 정보가 없는 경우
+      const offset = (page - 1) * limit;
+      statsQuery = statsQuery.range(offset, offset + limit - 1);
+    }
+
+    const { data: statsData, error: statsError } = await statsQuery
       .order('card_use_ymd', { ascending: false })
-      .order('id', { ascending: false });
+      .order('id', { ascending: false })
+      .limit(limit);
 
     if (statsError) {
       console.error('SHCARD_STATS query error:', statsError);
@@ -144,6 +158,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
     });
 
+    // 다음 페이지를 위한 커서 정보 (마지막 항목의 card_use_ymd와 id)
+    const lastItem = statsData && statsData.length > 0 ? statsData[statsData.length - 1] : null;
+    const nextCursor = lastItem
+      ? {
+          lastCardUseYmd: lastItem.card_use_ymd,
+          lastId: lastItem.id,
+        }
+      : null;
+
     res.status(200).json({
       code: 0,
       message: "OK",
@@ -155,6 +178,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           totalPage,
           totalCount,
         },
+        cursor: nextCursor,
       },
     });
   } catch (error) {

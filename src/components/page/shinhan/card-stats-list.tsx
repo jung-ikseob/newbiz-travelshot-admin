@@ -5,7 +5,7 @@ import { Alert, Row, Col, Spin } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/router";
 import numeral from "numeral";
-import { useCallback, useEffect, useMemo, lazy, Suspense, memo } from "react";
+import { useCallback, useEffect, useMemo, lazy, Suspense, memo, useState } from "react";
 import { formatCardUseDate, formatStmlType } from "@/utils/chart-helpers";
 
 // 코드 스플리팅: 차트 컴포넌트들을 동적으로 로드하여 초기 로딩 속도 향상
@@ -27,10 +27,23 @@ const CardStatsList = () => {
   const currentPage = router.query.page ? Number(router.query.page) : 1;
   const { data, error, isLoading, mutate } = useCardStats({ page: currentPage });
 
+  // 페이지별 커서 정보를 저장 (페이지 -> 커서 매핑)
+  const [cursorMap, setCursorMap] = useState<Record<number, { lastCardUseYmd: string; lastId: number }>>({});
+
   // 페이지 변경 시 강제로 데이터 리페치
   useEffect(() => {
     mutate();
   }, [currentPage, mutate]);
+
+  // 커서 정보 저장
+  useEffect(() => {
+    if (data?.data?.cursor) {
+      setCursorMap((prev: Record<number, { lastCardUseYmd: string; lastId: number }>) => ({
+        ...prev,
+        [currentPage]: data.data.cursor!,
+      }));
+    }
+  }, [data, currentPage]);
 
   // 유효하지 않은 페이지 접근 시 첫 페이지로 리다이렉트
   useEffect(() => {
@@ -56,12 +69,21 @@ const CardStatsList = () => {
 
   const handleChangePage = useCallback(
     (pageNumber: number) => {
+      // 이전 페이지의 커서 정보가 있으면 URL에 포함
+      const prevPageCursor = cursorMap[pageNumber - 1];
+      const query: any = { page: pageNumber };
+
+      if (prevPageCursor && pageNumber > 1) {
+        query.lastCardUseYmd = prevPageCursor.lastCardUseYmd;
+        query.lastId = prevPageCursor.lastId;
+      }
+
       router.push({
         pathname: router.pathname,
-        query: { page: pageNumber },
+        query,
       });
     },
-    [router]
+    [router, cursorMap]
   );
 
   const columns: ColumnsType<ICardStats> = [
