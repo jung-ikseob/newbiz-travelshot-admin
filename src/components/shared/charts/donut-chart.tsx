@@ -97,7 +97,7 @@ const DonutChart = memo<DonutChartProps>(
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {value} ({numeral(entry.payload.count).format("0,0")}건)
+                  {entry.payload.name} ({numeral(entry.payload.count).format("0,0")}건)
                 </span>
               )}
             />

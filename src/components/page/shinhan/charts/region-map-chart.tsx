@@ -1,78 +1,15 @@
-import { supabase } from "@/lib/supabase";
 import { Button, Card, Modal, Spin } from "antd";
 import { Maximize2 } from "lucide-react";
 import numeral from "numeral";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ComposableMap,
   Geographies,
   Geography,
 } from "react-simple-maps";
 import MonthSelector from "./month-selector";
-
-// 임시 데이터 - 실제 구 이름 매핑
-const mockData: Record<string, Record<string, number>> = {
-  "2025-03": {
-    "강남구": 7500000,
-    "서초구": 6800000,
-    "종로구": 6570000,
-    "송파구": 6200000,
-    "마포구": 5800000,
-    "중구": 5570000,
-    "강동구": 4900000,
-    "강서구": 4700000,
-    "용산구": 4570000,
-    "은평구": 4300000,
-    "중랑구": 4200000,
-    "양천구": 4100000,
-    "동작구": 4000000,
-    "서대문구": 3900000,
-    "성북구": 3800000,
-    "구로구": 3600000,
-    "성동구": 3570000,
-    "관악구": 3400000,
-    "강북구": 3200000,
-    "금천구": 3100000,
-    "도봉구": 2900000,
-    "광진구": 2570000,
-    "노원구": 5100000,
-    "동대문구": 1570000,
-    "영등포구": 5500000,
-  },
-  "2025-02": {
-    "강남구": 7300000,
-    "서초구": 6600000,
-    "종로구": 6200000,
-    "송파구": 6000000,
-    "마포구": 5600000,
-    "중구": 5300000,
-    "강동구": 4700000,
-    "���서구": 4500000,
-    "용산구": 4400000,
-    "은평구": 4100000,
-    "중랑구": 4000000,
-    "양천구": 3900000,
-    "동작구": 3800000,
-    "서대문구": 3700000,
-    "성북구": 3600000,
-    "구로구": 3400000,
-    "성동구": 3400000,
-    "관악구": 3200000,
-    "강북구": 3000000,
-    "금천구": 2900000,
-    "도봉구": 2700000,
-    "광진구": 2400000,
-    "노원구": 4900000,
-    "동대문구": 1400000,
-    "영등포구": 5300000,
-  },
-};
-
-interface RegionStatsResponse {
-  card_use_ymd: string;
-  sgg_nm: string;
-  card_use_sum_amt: number;
-}
+import { useRegionData } from "@/hooks/shinhan/use-chart-data";
+import { DEFAULT_MONTH } from "@/constants/shinhan-charts";
 
 interface MapContentProps {
   selectedMonth: string;
@@ -216,54 +153,11 @@ const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: Ma
 };
 
 const RegionMapChart = () => {
-  const [selectedMonth, setSelectedMonth] = useState("2025-03");
+  const [selectedMonth, setSelectedMonth] = useState(DEFAULT_MONTH);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [apiData, setApiData] = useState<Record<string, number> | null>(null);
 
-  // API 호출
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const monthYm = selectedMonth.replace("-", "");
-
-        const { data, error } = await supabase.rpc("get_region_stats_by_month", {
-          p_month_ym: monthYm,
-        });
-
-        console.log("Region API Response:", { data, error, monthYm });
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          console.log("Region Parsed result:", data);
-
-          // API 데이터를 구별로 매핑
-          const regionData: Record<string, number> = {};
-          data.forEach((item: RegionStatsResponse) => {
-            regionData[item.sgg_nm] = item.card_use_sum_amt;
-          });
-
-          console.log("Region Chart data:", regionData);
-          setApiData(regionData);
-        } else {
-          console.log("No data returned, using mock data");
-          setApiData(null);
-        }
-      } catch (error) {
-        console.error("Failed to fetch region stats:", error);
-        setApiData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [selectedMonth]);
-
-  // API 데이터가 있으면 사용, 없으면 mock 데이터 사용
-  const currentData = apiData || mockData[selectedMonth] || mockData["2025-03"];
+  // Custom hook을 사용한 데이터 fetching
+  const { data: currentData, loading } = useRegionData(selectedMonth);
 
   return (
     <>
@@ -283,7 +177,7 @@ const RegionMapChart = () => {
                 size="small"
                 icon={<Maximize2 size={16} />}
                 onClick={() => setIsModalOpen(true)}
-                title="크��� 보기"
+                title="크게 보기"
               />
             </div>
           </div>
@@ -293,7 +187,7 @@ const RegionMapChart = () => {
           <MapContent
             selectedMonth={selectedMonth}
             isModal={false}
-            currentData={currentData}
+            currentData={currentData || {}}
             loading={loading}
           />
         </div>
@@ -319,7 +213,7 @@ const RegionMapChart = () => {
           <MapContent
             selectedMonth={selectedMonth}
             isModal={true}
-            currentData={currentData}
+            currentData={currentData || {}}
             loading={loading}
           />
         </div>
