@@ -65,12 +65,18 @@ const IndustryChart = () => {
         </>
       }
     >
-      <DonutChart
-        data={chartData}
-        activeIndex={activeIndex}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      />
+      {!loading && chartData.length === 0 ? (
+        <div className="flex items-center justify-center h-full text-gray-500">
+          데이터가 없습니다
+        </div>
+      ) : (
+        <DonutChart
+          data={chartData}
+          activeIndex={activeIndex}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        />
+      )}
     </ChartCard>
   );
 };

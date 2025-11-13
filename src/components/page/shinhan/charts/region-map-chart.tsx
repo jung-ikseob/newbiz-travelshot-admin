@@ -59,6 +59,16 @@ const MapContent = ({ selectedMonth, isModal = false, currentData, loading }: Ma
     );
   }
 
+  // 데이터가 없는 경우
+  const hasData = Object.keys(currentData).length > 0;
+  if (!hasData) {
+    return (
+      <div className="relative flex items-center justify-center h-full text-gray-500">
+        데이터가 없습니다
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col h-full">
       <div className="flex flex-1 gap-1">
